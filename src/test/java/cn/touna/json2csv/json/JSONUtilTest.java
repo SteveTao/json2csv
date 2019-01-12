@@ -58,6 +58,18 @@ public class JSONUtilTest {
     }
 
     @Test
+    public void split(){
+        String str = null;
+        str = "{\"blackDetails\":\"A01:B02\"}";
+        JSONObject root = JSONObject.parseObject(str);
+
+        SplitFunc splitFunc = new SplitFunc();
+        Object v = splitFunc.func(root.getString("blackDetails"),Arrays.asList(":","key"));
+        System.out.println(v);
+
+    }
+
+    @Test
     public void dateFormatTest(){
         JSONObject data = new JSONObject();
         data.put("now",new Date());

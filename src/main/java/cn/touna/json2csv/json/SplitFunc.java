@@ -12,7 +12,7 @@ import java.util.List;
 public class SplitFunc extends JSONPathFunc {
 
     public SplitFunc() {
-        super("split", PatternUtil.getFuncPattern("split", 2));
+        super("split('seperator','key')", PatternUtil.getFuncPattern("split", 2));
     }
 
     @Override
