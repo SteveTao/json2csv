@@ -26,7 +26,7 @@ json2csv的整个过程入图：
 
 - 输入：jsonline文件，即每一行一个json。api中传JSONObject
 - 输出：csv格式的字符串，以\n结尾
-- 中间映射：markdown格式，方便编辑纷繁复杂的映射。可参考[TweeterUserMapping.md](doc/src/test/resources/mapping/TweeterUserMapping.md)
+- 中间映射：markdown格式，方便编辑纷繁复杂的映射。可参考[TweeterUserMapping.md](src/test/resources/mapping/TweeterUserMapping.md)
 
 ### 案例1：Json2CsvApp
 ```java
