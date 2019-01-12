@@ -21,7 +21,12 @@ json - mapping - > csv
 案例1： Json2CsvApp
 案例2： Json2CsvMappingAdaptor api使用
 ```
+json2csv的整个过程入图：
 ![json2csv](doc/json2csv.jpg)
+
+- 输入：jsonline文件，即每一行一个json。api中传JSONObject
+- 输出：csv格式的字符串，以\n结尾
+- 中间映射：markdown格式，方便编辑纷繁复杂的映射。可参考[TweeterUserMapping.md](doc/src/test/resources/mapping/TweeterUserMapping.md)
 
 ### 案例1：Json2CsvApp
 ```java
@@ -121,7 +126,6 @@ public class Json2CsvMappingAdaptorTest {
         }
     }
 }
-
 ```
 
 ## 映射文件
