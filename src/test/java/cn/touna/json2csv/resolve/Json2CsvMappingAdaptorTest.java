@@ -51,7 +51,7 @@ public class Json2CsvMappingAdaptorTest {
                 return value;
             }
         });
-        resolverConfig.setCellSeparator("\001");
+        resolverConfig.setCellSeparator("||");
 
         //解析器
         Json2CsvResolver resolver = new Json2CsvResolver(resolverConfig);
