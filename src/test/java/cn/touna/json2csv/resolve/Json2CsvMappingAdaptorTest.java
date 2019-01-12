@@ -3,10 +3,14 @@ package cn.touna.json2csv.resolve;
 import cn.touna.json2csv.Json2CsvMappingMarkdownLoader;
 import cn.touna.json2csv.model.Json2CsvMapping;
 import cn.touna.json2csv.model.ResolveResult;
+import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import org.junit.Test;
+import org.springframework.core.io.ClassPathResource;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
@@ -44,7 +48,7 @@ public class Json2CsvMappingAdaptorTest {
                         e.printStackTrace();
                     }
                 }
-                return null;
+                return value;
             }
         });
         resolverConfig.setCellSeparator("\001");
@@ -54,23 +58,31 @@ public class Json2CsvMappingAdaptorTest {
 
         //映射文件加载器
         Json2CsvMappingMarkdownLoader loader= new Json2CsvMappingMarkdownLoader();
-        String mappingPath = "file://yourdir/mapping.md";
+
+        ClassPathResource mappingResource = new ClassPathResource("mapping/TweeterUserMapping.md");
+        String mappingPath = mappingResource.getURL().getFile();
         List<Json2CsvMapping> mappingList = loader.loadFromFile(mappingPath);
 
         JsonDataResolver jsonDataResolver = new Json2CsvMappingAdaptor(resolver,mappingList);
 
-        String jsonStr = "...";
-        JSONObject jo = JSONObject.parseObject(jsonStr);
+        BufferedReader br = new BufferedReader(new InputStreamReader(new ClassPathResource("json/tweeter-user.jl").getInputStream()));
+        String line = null;
+        JSONArray ja = new JSONArray();
+        while ((line = br.readLine()) != null){
+            ja.add(JSONObject.parseObject(line));
+        }
+        br.close();
+        JSONObject jo = ja.getJSONObject(0);
 
         ResolveResult resolveResult = jsonDataResolver.resolve(jo);
         Map<String, List<String>> resolvedData = resolveResult.getResolvedData();
         for (Map.Entry<String, List<String>> entry : resolvedData.entrySet()) {
             System.out.println("Table: " + entry.getKey());
             System.out.println("---------------------------------");
-            for (String line : entry.getValue()) {
-                System.out.println(line);
+            for (String row : entry.getValue()) {
+                System.out.println(row);
             }
-            System.out.println();
+            System.out.println("complete!");
         }
     }
 }
