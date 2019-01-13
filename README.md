@@ -28,13 +28,16 @@ json2csv的整个过程入图：
 - 输出：csv格式的字符串，以\n结尾
 - 中间映射：markdown格式，方便编辑纷繁复杂的映射。可参考[TweeterUserMapping.md](src/test/resources/mapping/TweeterUserMapping.md)
 
+在项目中大量使用了fastjson的JSONPath技术,您需要对jsonpath有足够的了解，才能更好的理解此项目。
+ [w3cschool fastjson jsonpath](https://www.w3cschool.cn/fastjson/fastjson-jsonpath.html)
+
 ### 案例1：Json2CsvApp
 ```java
 import org.junit.Test;
 import java.io.IOException;
 
 public class AppTest {
-   
+
     @Test
     public void shouldAnswerWithTrue() throws IOException {
         Json2CsvApp app = new Json2CsvApp();
@@ -142,34 +145,108 @@ public class Json2CsvMappingAdaptorTest {
     }
 }
 ```
+
 **执行结果**以||为分隔符
 ```text
 772682964||SitePoint JavaScript||SitePointJS||Melbourne, Australia||Keep up with JavaScript tutorials, tips, tricks and articles at SitePoint.||http://t.co/cCH13gqeUK||false||2145||18||328||1345572393000||57||43200||Wellington
 ```
 
 ## 映射文件
-```text
-1. 为什么要选择markdown 
-2. 文件的元素
-- document title
-- table title 
-- config
-- fields
-3. jsonpath
+> 映射文件组成
+
+映射文件(json2csv mapping，简称mapping)由markdown文档来组织。以下为mapping中标签的含义
+```
+# <title>       表示整个文档的名称，可以自由定义
+## <tableName>  表示json格式化成csv后，要输出到哪个表
+- config        表示这个表的数据来源于json数据的哪个节点。config的内容是json格式。
+- fields        从指定的字段中获取指定的字段值。fields的内容是csv格式。
 ```
 
-## json转换函数
-```text
-1. 内置转换函数
-2. 逐一介绍函数
-3. 拓展
+总结而言：
+config主要是讲json数据是否需要做json2csv的转换
+fields主要将哪些字段需要做映射
+
+> config格式
+
+```json
+{
+  "filter": {       /*过滤器，用来选择json是否符合过滤条件，符合才能做*/
+    "match":{}
+  },
+  "root": "user",
+  "comment": "tweeter用户表"
+}
 ```
+
+标签 | 说明 | 用法
+---|---|---
+filter|过滤器，用来过滤json，符合过滤条件才能进行下一步|按elasticsearch的风格，当前仅支持match语法
+filter.match|字符串匹配，json对象，key为jsonpath路径，value为值，value可以为正则表达式| {"name":"[a-z]+BlackList$"}
+root|从json中选择根节点，有了根节点，就可以从中取字段了.格式为jsonpath路径| data.user
+optionalRoots|可选的根，字符串数组。主要的字段是从root里面拿，有一些字段并非在root字段中，例如root为data.user,但要拿data.requestNo字段，那么可选根就可以填写[data],data.requestNo字段如果在root中找不到，就会去optionalRoots中寻找|["data"]
+encryptColumns|要加密的字段，json对象，key为要加密的csv字段(fields中的列),value为加密方法的名字，加密方法通过ResolverConfig.addEncryptHandler方法来注入，由开发人人员自己注入，系统不提供加密方法|{"name":"SHA"}
+comment| 表的说明，可用于后期建表语句的生成| 用户表
+
+> fields格式
+
+fields是csv格式,以英文逗号分隔，包含四个列，分别为：field,column,type,comment
+
+列|说明|案例
+---|---|---
+field|json数据root/optionalRoots下的字段，必填项。字段可以为jsonpath路径。如果以$开头，则字段值会从json数据的根开始查找，而不会从root,optionalRoots下查找| $.data.user.type
+column|字段名，可不填。如果不填，则用field转换过来，转换规则为：取jsonpath最后一个点号后面的字符串，将驼峰发改写为下划线的格式，例如field=person.lastName,则colunn为last_name。如果填写，则使用填写的column|user_type
+type|用户自己填写，用来定义类型，如不填，则默认为varchar(100)| tinyint
+comment|字段描述，如果里面包含英文逗号，则需要用双引号""括起来|用户类型枚举值,1:普通用户;2:会员用户
+
+> 为什么要mapping用markdown格式?
+
+mapping可以融合config(json格式)和fields(csv格式)于一体，方便阅读
+
+对于某种json，一般拥有较多或者较深的层次结构，因而针对不同层次的节点，可以解析成好不同的表数据。这种json数据可以归类为一类数据，这一类数据的映射放在同一个文档中，既方便归类整理，又方便阅读。
+
+映射作为一种元数据，也是需要维护和阅读的。markdown在json2csv中具有两个功能：一是作为映射的存储；
+二是作为markdown格式，提供给技术人员和业务人员阅读，让大家能看清数据的来龙去脉。
+
+数据库可用来存储mapping，但存在诸多问题：
+1. 不方便大规模的编辑。mapping在初期存在不稳定的情况，需要时常改动。
+2. 不直观。对于数据开发人员，数据使用人员，快速了解数据的来龙去脉有利于发现问题，理解数据
+3. 存储在数据库中，开发人员需要额外地提供文档给数据分析人员
+
+## json转换函数
+
+> 概述
+
+在mapping文件中，有几个地方用到了jsonpath技术
+1. config中的root,optionalRoots
+2. fields中的field
+
+jsonpath技术在大多数情况下比较完备了，但在函数上和自定义拓展上还不够开放，为了处理现实遇到的一些转换和计算问题，json2csv项目中对jsonpath进行了函数拓展。
+
+项目中已经内置了一些函数，同时通过api，你可以注入语法和相关处理函数
+内置函数有：
+- json转换函数
+  - split
+  - toJson
+  - flat
+  - entrySet
+- 值处理函数
+  - sysVar
+  - defaultValue
+  - dateFormat
+  - timestamp
+
+json转换函数，结果输出为JSONObject/JSONArray对象；值处理函数，结果输出为值
+
+> 内置函数
+
+
+> 自定义函数
 
 ## api
 
 ## 更多定制化
 ```text
 1. markdown包含更多的配置
-2. 
+2.
 
 ```
